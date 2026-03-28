@@ -1,6 +1,6 @@
 # Roadmap specific ignores
-# Ignore the roadmap docs
-docs/
+# Ignore the roadmap and execution manual
+docs/roadmap/
 
 # Foundry & Solidity specific
 # Compiler output
