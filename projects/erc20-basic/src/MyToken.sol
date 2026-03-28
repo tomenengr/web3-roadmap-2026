@@ -42,6 +42,10 @@ contract MyToken {
         return true;
     }
 
+    /**
+     * @dev 标准 ERC20 approve。
+     * 注意：为了兼容性必须保留，但推荐使用 increase/decreaseAllowance。
+     */
     function approve(address _spender, uint256 _value) external returns (bool) {
         _approve(msg.sender, _spender, _value);
         return true;
@@ -58,18 +62,29 @@ contract MyToken {
         return true;
     }
 
+    // --- 安全扩展：防止授权抢跑 (Front-running) ---
+
+    function increaseAllowance(address _spender, uint256 _addedValue) external returns (bool) {
+        _approve(msg.sender, _spender, allowance[msg.sender][_spender] + _addedValue);
+        return true;
+    }
+
+    function decreaseAllowance(address _spender, uint256 _subtractedValue) external returns (bool) {
+        uint256 currentAllowance = allowance[msg.sender][_spender];
+        if (currentAllowance < _subtractedValue) {
+            revert ERC20InsufficientAllowance(msg.sender, currentAllowance, _subtractedValue);
+        }
+        
+        _approve(msg.sender, _spender, currentAllowance - _subtractedValue);
+        return true;
+    }
+
     // --- 扩展功能：Mint & Burn ---
 
-    /**
-     * @dev 只有 Owner 可以增发代币
-     */
     function mint(address _to, uint256 _amount) external onlyOwner {
         _mint(_to, _amount);
     }
 
-    /**
-     * @dev 任何人都可以燃烧自己的代币
-     */
     function burn(uint256 _amount) external {
         _burn(msg.sender, _amount);
     }
@@ -86,7 +101,6 @@ contract MyToken {
         }
 
         unchecked {
-            // 在检查过余额后，减法可以用 unchecked 稍微省点 Gas
             balanceOf[from] = fromBalance - value;
             balanceOf[to] += value;
         }

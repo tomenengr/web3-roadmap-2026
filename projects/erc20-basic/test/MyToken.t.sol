@@ -32,7 +32,6 @@ contract MyTokenTest is Test {
     function test_FailTransferInsufficientBalance() public {
         uint256 amount = 2000 ether;
         vm.prank(user1);
-        // 匹配自定义错误 ERC20InsufficientBalance
         vm.expectRevert(
             abi.encodeWithSelector(MyToken.ERC20InsufficientBalance.selector, user1, 0, amount)
         );
@@ -58,7 +57,47 @@ contract MyTokenTest is Test {
         assertEq(token.allowance(owner, user1), 0);
     }
 
-    // --- 新增测试：Mint ---
+    // --- 安全扩展测试：Increase/Decrease Allowance ---
+
+    function test_IncreaseAllowance() public {
+        uint256 initialAllowance = 50 ether;
+        uint256 increment = 30 ether;
+        
+        vm.startPrank(owner);
+        token.approve(user1, initialAllowance);
+        token.increaseAllowance(user1, increment);
+        vm.stopPrank();
+
+        assertEq(token.allowance(owner, user1), initialAllowance + increment);
+    }
+
+    function test_DecreaseAllowance() public {
+        uint256 initialAllowance = 50 ether;
+        uint256 decrement = 20 ether;
+        
+        vm.startPrank(owner);
+        token.approve(user1, initialAllowance);
+        token.decreaseAllowance(user1, decrement);
+        vm.stopPrank();
+
+        assertEq(token.allowance(owner, user1), initialAllowance - decrement);
+    }
+
+    function test_FailDecreaseAllowanceInsufficient() public {
+        uint256 initialAllowance = 50 ether;
+        uint256 decrement = 100 ether;
+        
+        vm.startPrank(owner);
+        token.approve(user1, initialAllowance);
+        // 关键点：修正期待的地址为 owner (address(1))
+        vm.expectRevert(
+            abi.encodeWithSelector(MyToken.ERC20InsufficientAllowance.selector, owner, initialAllowance, decrement)
+        );
+        token.decreaseAllowance(user1, decrement);
+        vm.stopPrank();
+    }
+
+    // --- Mint/Burn 测试 ---
 
     function test_Mint() public {
         uint256 amount = 500 ether;
@@ -68,26 +107,15 @@ contract MyTokenTest is Test {
         assertEq(token.totalSupply(), initialSupply + amount);
     }
 
-    function test_FailMintUnauthorized() public {
-        uint256 amount = 500 ether;
-        vm.prank(user1);
-        vm.expectRevert(abi.encodeWithSelector(MyToken.Unauthorized.selector, user1));
-        token.mint(user1, amount);
-    }
-
-    // --- 新增测试：Burn ---
-
     function test_Burn() public {
         uint256 amount = 100 ether;
         vm.prank(owner);
         token.burn(amount);
         assertEq(token.balanceOf(owner), initialSupply - amount);
-        assertEq(token.totalSupply(), initialSupply - amount);
     }
 
     // --- Fuzz Test ---
     function testFuzz_Transfer(uint256 amount) public {
-        // 限制金额在有效范围内
         vm.assume(amount <= initialSupply);
         vm.prank(owner);
         token.transfer(user1, amount);

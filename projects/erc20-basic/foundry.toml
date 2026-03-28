@@ -3,4 +3,10 @@ src = "src"
 out = "out"
 libs = ["lib"]
 solc = "0.8.20"
+
+# --- Fuzz Testing Config ---
+[fuzz]
+# 默认跑 1000 次随机值，让漏洞无处遁形！🛡️
+runs = 1000
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
