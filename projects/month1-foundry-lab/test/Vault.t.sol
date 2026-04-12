@@ -14,7 +14,7 @@ contract VaultTest is Test {
     }
 
     /**
-     * @dev 实验 4：手动“抠出”打包在 Slot 0 里的 bool 变量 🧐✂️
+     * @dev 实验 4：手动“抠出”打包在 Slot 0 里的 bool 变量
      */
     function test_ExtractIsLocked() public {
         // 1. 读取 Slot 0

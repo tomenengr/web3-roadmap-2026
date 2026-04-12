@@ -2,52 +2,53 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title EVM 存储实验室 - 金库合约
- * @dev 这是一个专门用来练习 Storage Slot 布局的合约。
- * 目标：观察不同大小的变量是如何在 32 字节的槽位中被打包(Pack)或分隔的。
+ * @title 基础金库 (大伯)
  */
-contract Vault {
-    // --- Slot 0 ---
-    address public owner;      // 20 字节
-    bool public isLocked;      // 1 字节
-    // 合计 21 字节，还剩下 11 字节。
+contract BaseVault {
+    uint256 public creationTime; // Slot 0
+}
+
+/**
+ * @title 管理金库 (二伯)
+ */
+contract AdminVault {
+    address public superAdmin;   // Slot 1 (20 字节)
+    bool public isPaused;        // Slot 1 (1 字节)
+}
+
+/**
+ * @title EVM 存储实验室 - 金库合约 (主角)
+ * @dev 继承顺序是 BaseVault -> AdminVault -> Vault
+ */
+contract Vault is BaseVault, AdminVault {
+    address public owner;      // 之前在 Slot 0，现在在哪？
+    bool public isLocked;      
     
-    // --- Slot 1 (如果放在这里会溢出 Slot 0) ---
-    uint128 public maxDeposit; // 16 字节 (放在 Slot 1)
-    uint128 public minDeposit; // 16 字节 (正好填满 Slot 1)
+    uint128 public maxDeposit; 
+    uint128 public minDeposit; 
 
-    // --- Slot 2 ---
-    uint256 public totalBalance; // 32 字节 (独占 Slot 2)
+    uint256 public totalBalance; 
 
-    // --- 映射与复杂类型 ---
-    mapping(address => uint256) public balances; // Slot 3 (只存占位符，数据存他在的地方)
+    mapping(address => uint256) public balances; 
 
-    event Deposit(address indexed user, uint256 amount);
-    event Withdraw(address indexed user, uint256 amount);
-
-    error Unauthorized();
-    error TransferFailed();
+    uint256[] public ids; // 新增研究对象：Slot 6
 
     constructor() {
         owner = msg.sender;
-        isLocked = true; // 为了实验观察，我们把它设为 true
+        isLocked = true; 
+        creationTime = block.timestamp;
     }
 
     function deposit() external payable {
         balances[msg.sender] += msg.value;
         totalBalance += msg.value;
-        emit Deposit(msg.sender, msg.value);
     }
 
     function withdraw(uint256 amount) external {
-        if (balances[msg.sender] < amount) revert TransferFailed();
-        
+        if (balances[msg.sender] < amount) revert();
         balances[msg.sender] -= amount;
         totalBalance -= amount;
-        
         (bool success, ) = msg.sender.call{value: amount}("");
-        if (!success) revert TransferFailed();
-        
-        emit Withdraw(msg.sender, amount);
+        if (!success) revert();
     }
 }
