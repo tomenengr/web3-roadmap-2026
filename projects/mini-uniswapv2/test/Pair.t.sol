@@ -30,8 +30,8 @@ contract PairTest is Test {
         }
 
         // 4. 给 Alice 一点钱
-        token0.mint(alice, 1000 ether);
-        token1.mint(alice, 1000 ether);
+        token0.transfer(alice, 1000 ether);
+        token1.transfer(alice, 1000 ether);
     }
 
     function testFirstMint() public {

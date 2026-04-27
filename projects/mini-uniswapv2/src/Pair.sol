@@ -115,7 +115,9 @@ contract Pair is UniERC20 {
         uint _totalSupply = totalSupply;
 
         if (_totalSupply == 0) {
-            liquidity = Math.sqrt(amount0 * amount1) - MINIMUN_LIQUIDITY;
+            uint initialLiquidity = Math.sqrt(amount0 * amount1);
+            require(initialLiquidity > MINIMUN_LIQUIDITY, "insufficient liquidity minted");
+            liquidity = initialLiquidity - MINIMUN_LIQUIDITY;
             _mint(address(0), MINIMUN_LIQUIDITY);
         } else {
             liquidity = Math.min(amount0 * _totalSupply / _reserve0, amount1 * _totalSupply / _reserve1);
