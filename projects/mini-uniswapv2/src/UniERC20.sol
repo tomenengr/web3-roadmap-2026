@@ -83,7 +83,7 @@ contract UniERC20 {
     }
 
     function permit(
-        address owner,
+        address owner_,
         address spender,
         uint value,
         uint deadline,
@@ -97,14 +97,14 @@ contract UniERC20 {
             abi.encodePacked(
                 "\x19\x01",
                 DOMAIN_SEPARATOR,
-                keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline))
+                keccak256(abi.encode(PERMIT_TYPEHASH, owner_, spender, value, nonces[owner_]++, deadline))
             )
         );
 
         address recoveredAddress = ecrecover(digest, v, r, s);
-        require(recoveredAddress != address(0) && recoveredAddress == owner, "invalid signature");
+        require(recoveredAddress != address(0) && recoveredAddress == owner_, "invalid signature");
 
-        allowance[owner][spender] = value;
-        emit Approval(owner, spender, value);
+        allowance[owner_][spender] = value;
+        emit Approval(owner_, spender, value);
     }
 }

@@ -25,7 +25,8 @@ contract Factory {
         require(token0 != address(0), "address(0)");
         require(getPair[token0][token1] == address(0), "cun zai");
 
-        bytes32 salt = keccak256(abi.encode(token0, token1));
+        // Must match Library.pairFor salt derivation to keep the pair address deterministic.
+        bytes32 salt = keccak256(abi.encodePacked(token0, token1));
         bytes memory bytecode = type(Pair).creationCode;
 
         assembly {

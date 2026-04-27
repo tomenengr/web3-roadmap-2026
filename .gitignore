@@ -23,3 +23,6 @@ cache/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Local tooling markers
+.codex

@@ -12,7 +12,9 @@ contract Pair is UniERC20 {
     address public token0;
     address public token1;
     address public factory;
-    uint public constant MINIMUN_LIQUIDITY = 1000;
+    uint public constant MINIMUM_LIQUIDITY = 1000;
+    // Backwards-compat alias (typo) for any existing references.
+    uint public constant MINIMUN_LIQUIDITY = MINIMUM_LIQUIDITY;
 
     uint112 private reserve0;
     uint112 private reserve1;
@@ -87,17 +89,17 @@ contract Pair is UniERC20 {
         address feeTo = IUniswapV2Factory(factory).feeTo();
         feeOn = feeTo != address(0);
         uint _kLast = kLast;
-        if(feeOn){
+        if (feeOn) {
             if (_kLast != 0) {
-            uint rootk = Math.sqrt(uint(reserve0) * reserve1);
-            uint rootkLast = Math.sqrt(_kLast);
-            if (rootk > rootkLast) {
-                uint liquidity = totalSupply * (rootk - rootkLast) / (5 * rootk + rootkLast);
-                if (liquidity > 0) _mint(feeTo, liquidity);
+                uint rootk = Math.sqrt(uint(_reserve0) * _reserve1);
+                uint rootkLast = Math.sqrt(_kLast);
+                if (rootk > rootkLast) {
+                    uint liquidity = totalSupply * (rootk - rootkLast) / (5 * rootk + rootkLast);
+                    if (liquidity > 0) _mint(feeTo, liquidity);
+                }
             }
-            }
-        }else if(kLast != 0) {
-            kLast =0;
+        } else if (_kLast != 0) {
+            kLast = 0;
         }
         emit MintFee(_reserve0, _reserve1);
     }
@@ -109,32 +111,37 @@ contract Pair is UniERC20 {
         uint amount0 = balance0 - _reserve0;
         uint amount1 = balance1 - _reserve1;
 
-        if (totalSupply == 0) {
+        bool feeOn = _mintFee(_reserve0, _reserve1);
+        uint _totalSupply = totalSupply;
+
+        if (_totalSupply == 0) {
             liquidity = Math.sqrt(amount0 * amount1) - MINIMUN_LIQUIDITY;
             _mint(address(0), MINIMUN_LIQUIDITY);
         } else {
-            liquidity = Math.min(amount0 * totalSupply / reserve0, amount1 * totalSupply / reserve1);
+            liquidity = Math.min(amount0 * _totalSupply / _reserve0, amount1 * _totalSupply / _reserve1);
         }
 
-        bool feeOn = _mintFee(_reserve0, _reserve1);
         require(liquidity > 0, "insufficient liquidity minted");
         _mint(to, liquidity);
         _update(balance0, balance1);
-        if (feeOn) kLast =uint(_reserve0) * _reserve1;
+        if (feeOn) kLast = uint(reserve0) * reserve1;
         emit Mint(msg.sender, amount0, amount1);
     }
 
-    function burn(address to, uint liquidity) external lock returns (uint amount0, uint amount1) {
+    function burn(address to) external lock returns (uint amount0, uint amount1) {
         uint balance0 = ERC20(token0).balanceOf(address(this));
         uint balance1 = ERC20(token1).balanceOf(address(this));
         (uint112 _reserve0, uint112 _reserve1,) = getReserves();
 
-        amount0 = liquidity * balance0 / totalSupply;
-        amount1 = liquidity * balance1 / totalSupply;
+        uint liquidity = balanceOf[address(this)];
+        bool feeOn = _mintFee(_reserve0, _reserve1);
+        uint _totalSupply = totalSupply;
+
+        amount0 = liquidity * balance0 / _totalSupply;
+        amount1 = liquidity * balance1 / _totalSupply;
         require(amount0 > 0 && amount1 > 0, "insufficient liquidity burned");
 
-        bool feeOn = _mintFee(_reserve0, _reserve1);
-        _burn(msg.sender, liquidity);
+        _burn(address(this), liquidity);
 
         ERC20(token0).transfer(to, amount0);
         ERC20(token1).transfer(to, amount1);
@@ -143,7 +150,7 @@ contract Pair is UniERC20 {
         balance1 = ERC20(token1).balanceOf(address(this));
         _update(balance0, balance1);
 
-        if (feeOn) kLast =uint(_reserve0) * _reserve1;
+        if (feeOn) kLast = uint(reserve0) * reserve1;
         emit Burn(msg.sender, amount0, amount1, to);
     }
 
@@ -180,7 +187,7 @@ contract Pair is UniERC20 {
     function sync() external lock {
         uint balance0 = ERC20(token0).balanceOf(address(this));
         uint balance1 = ERC20(token1).balanceOf(address(this));
-        emit Sync(uint112(balance0), uint112(balance1));
+        _update(balance0, balance1);
     }
 
     function skim(address _to) external lock {
@@ -189,7 +196,6 @@ contract Pair is UniERC20 {
         uint balance1 = ERC20(token1).balanceOf(address(this));
         if (balance0 > _reserve0) ERC20(token0).transfer(_to, balance0 - _reserve0);
         if (balance1 > _reserve1) ERC20(token1).transfer(_to, balance1 - _reserve1);
-        emit Sync(uint112(balance0), uint112(balance1));
     }
 
 }

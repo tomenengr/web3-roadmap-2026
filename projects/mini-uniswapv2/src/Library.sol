@@ -1,7 +1,8 @@
 //SPDX-License-Identifier:MIT
 pragma solidity ^0.8.20;    
 
-import "./IUniswapv2Pair.sol";
+import "./IUniswapV2Pair.sol";
+import "./Pair.sol";
 
 library Library {
     function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1){
@@ -12,14 +13,16 @@ library Library {
 
     function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address _pair) {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
+        bytes32 salt = keccak256(abi.encodePacked(token0, token1));
+        bytes32 initCodeHash = keccak256(type(Pair).creationCode);
         _pair = address(
             uint160(
                 uint(
                     keccak256(abi.encodePacked(
                         hex'ff',
                         factory,
-                        abi.encodePacked(token0, token1),
-                        hex'434b986ed0cf4b3fddcef33867ea09389b82f73701e11ae6d9c1061bb2caeff4'
+                        salt,
+                        initCodeHash
                     ))
                 )
             )
